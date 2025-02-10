@@ -53,9 +53,9 @@ int main() {
   // printf( "create Handle\n");
 
   for (p = PFIRST; p <= PLAST; p += PINC) {
-    m = (M == -1 ? p : M);
-    n = (N == -1 ? p : N);
-    k = (K == -1 ? p : K);
+    m = (SIZE_M == -1 ? p : SIZE_M);
+    n = (SIZE_N == -1 ? p : SIZE_N);
+    k = (SIZE_K == -1 ? p : SIZE_K);
 
     gflops = 2.0 * m * n * k * 1.0e-09;
 

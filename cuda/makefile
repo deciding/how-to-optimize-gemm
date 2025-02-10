@@ -1,7 +1,8 @@
-OLD  := MMult_cuBLAS_1
+#OLD  := MMult_cuBLAS_1
 #NEW  := MMult_cuBLAS_1
 NEW := MMult_cuda_3
-SMS ?= 70 75 80 86
+#SMS ?= 70 75 80 86 90
+SMS ?= 90
 
 #
 # sample makefile
@@ -12,8 +13,8 @@ LINKER     := $(CC)
 #CFLAGS     := -O0 -g -Wall
 $(foreach sm,$(SMS),$(eval GENCODE_FLAGS += -gencode arch=compute_$(sm),code=sm_$(sm)))
 # CFLAGS     := -std=c++17 -O0 -g -G
-CFLAGS     := -std=c++17 -O2
-LDFLAGS    := -lm  -lcublas  -lopenblas
+CFLAGS     := -std=c++17 -O2 -I$(HOME)/local/include -I/usr/local/cuda-12.6/targets/x86_64-linux/include/ 
+LDFLAGS    := -L/usr/local/cuda-12.6/targets/x86_64-linux/lib/ -L$(HOME)/local/lib -lm  -lcublas  -lopenblas -lcupti
 
 UTIL       := copy_matrix.o \
               compare_matrices.o \
@@ -23,6 +24,7 @@ UTIL       := copy_matrix.o \
               print_matrix.o
 
 TEST_OBJS  := test_MMult.o $(NEW).o 
+CUPTI_OBJS  := cupti_MMult.o $(NEW).o 
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(GENCODE_FLAGS)  -c $< -o $@
@@ -33,17 +35,25 @@ TEST_OBJS  := test_MMult.o $(NEW).o
 all: 
 	make clean;
 	make test_MMult.x
+	#make cupti_MMult.x
+	make $(NEW).ptx
 
 test_MMult.x: $(TEST_OBJS) $(UTIL) parameters.h
 	$(LINKER) $(TEST_OBJS) $(UTIL) $(LDFLAGS) \
         $(BLAS_LIB) -o $(TEST_BIN) $@ 
+cupti_MMult.x: $(CUPTI_OBJS) $(UTIL) parameters.h
+	$(LINKER) $(CUPTI_OBJS) $(UTIL) $(LDFLAGS) \
+        $(BLAS_LIB) -o $(TEST_BIN) $@ 
+
+$(NEW).ptx: $(NEW).cu
+	$(CC) $(CFLAGS) $(GENCODE_FLAGS) -ptx -c $< -o $@
 
 run:	
 	make all
-	echo "version = '$(NEW)';" > output_$(NEW).m
-	./test_MMult.x >> output_$(NEW).m
-	cp output_$(OLD).m output_old.m
-	cp output_$(NEW).m output_new.m
+	echo "version = '$(NEW)';" > outputs/output_$(NEW).m
+	./test_MMult.x >> outputs/output_$(NEW).m
+	#cp output_$(OLD).m output_old.m
+	#cp output_$(NEW).m output_new.m
 
 clean:
 	rm -f *.o *~ core *.x
