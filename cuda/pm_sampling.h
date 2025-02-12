@@ -8,6 +8,8 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
+#include <thread>
 
 // CUPTI headers
 #include "helper_cupti.h"
@@ -15,6 +17,8 @@
 #include <cupti_pmsampling.h>
 #include <cupti_profiler_target.h>
 #include <cupti_profiler_host.h>
+
+#define NUM_PRINT_SAMPLES 100
 
 struct SamplerRange
 {
@@ -24,15 +28,15 @@ struct SamplerRange
     std::unordered_map<std::string, double> metricValues;
 };
 
-class CuptiProfilerHost
+class CuptiPmProfilerHost
 {
     std::string m_chipName;
     std::vector<SamplerRange> m_samplerRanges;
     CUpti_Profiler_Host_Object* m_pHostObject = nullptr;
 
 public:
-    CuptiProfilerHost() = default;
-    ~CuptiProfilerHost() = default;
+    CuptiPmProfilerHost() = default;
+    ~CuptiPmProfilerHost() = default;
 
     void SetUp(std::string chipName, std::vector<uint8_t>& counterAvailibilityImage)
     {
@@ -118,8 +122,8 @@ public:
     void PrintSampleRanges()
     {
         std::cout << "Total num of Samples: " << m_samplerRanges.size() << "\n";
-        std::cout << "Printing first 50 samples:" << "\n";
-        for(size_t sampleIndex = 0; sampleIndex < 50; ++sampleIndex)
+        std::cout << "Printing first " << NUM_PRINT_SAMPLES << " samples:" << "\n";
+        for(size_t sampleIndex = 0; sampleIndex < std::min(NUM_PRINT_SAMPLES, (int)m_samplerRanges.size()); ++sampleIndex)
         {
             const auto& samplerRange = m_samplerRanges[sampleIndex];
             std::cout << "Sample Index: " << sampleIndex << "\n";
@@ -373,3 +377,60 @@ private:
 
 void PmSamplingDeviceSupportStatus(CUdevice device);
 int PmSamplingQueryMetrics(std::string chipName, std::vector<uint8_t>& counterAvailibilityImage, int queryBaseMetrics, int queryMetricProperties, std::vector<const char*>& metrics);
+void DecodeCounterData( std::vector<uint8_t>& counterDataImage,
+                        std::vector<const char*> metricsList,
+                        CuptiPmSampling& cuptiPmSamplingTarget,
+                        CuptiPmProfilerHost& pmSamplingHost,
+                        CUptiResult& result,
+                        std::atomic<bool>& stopDecodeThread
+                        );
+void DecodeCounterDataSync( std::vector<uint8_t>& counterDataImage,
+                        std::vector<const char*> metricsList,
+                        CuptiPmSampling& cuptiPmSamplingTarget,
+                        CuptiPmProfilerHost& pmSamplingHost,
+                        CUptiResult& result
+                        );
+
+
+class DecodeThread {
+    private:
+        std::atomic<bool> stopDecodeThread;
+        std::thread decodeThread;
+        CUptiResult threadFuncResult;
+    
+    public:
+        DecodeThread() : stopDecodeThread(false){
+        }
+
+        void start(std::vector<uint8_t>& counterDataImage,
+            std::vector<const char*>& metricsList,
+            CuptiPmSampling& cuptiPmSamplingTarget,
+            CuptiPmProfilerHost& pmSamplingHost
+            ){
+
+            stopDecodeThread = false;
+            decodeThread = std::thread(
+                DecodeCounterData, 
+                std::ref(counterDataImage), 
+                std::ref(metricsList), 
+                std::ref(cuptiPmSamplingTarget), 
+                std::ref(pmSamplingHost), 
+                std::ref(threadFuncResult),
+                std::ref(stopDecodeThread)
+            );
+        }
+
+        int join(){
+            stopDecodeThread = true;
+            decodeThread.join();
+            if (threadFuncResult != CUPTI_SUCCESS)
+            {
+                const char *errstr;
+                cuptiGetResultString(threadFuncResult, &errstr);
+                std::cerr << "DecodeCounterData Thread failed with error " << errstr << std::endl;
+                return 1;
+            }
+            return 0;
+        }
+
+};

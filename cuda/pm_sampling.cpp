@@ -51,7 +51,7 @@ void PmSamplingDeviceSupportStatus(CUdevice device)
 
 int PmSamplingQueryMetrics(std::string chipName, std::vector<uint8_t>& counterAvailibilityImage, int queryBaseMetrics, int queryMetricProperties, std::vector<const char*>& metrics)
 {
-    CuptiProfilerHost pmSamplingHost;
+    CuptiPmProfilerHost pmSamplingHost;
     pmSamplingHost.SetUp(chipName, counterAvailibilityImage);
 
     if (queryBaseMetrics)
@@ -90,4 +90,87 @@ int PmSamplingQueryMetrics(std::string chipName, std::vector<uint8_t>& counterAv
 
     pmSamplingHost.TearDown();
     return 0;
+}
+
+void DecodeCounterData( std::vector<uint8_t>& counterDataImage,
+                        std::vector<const char*> metricsList,
+                        CuptiPmSampling& cuptiPmSamplingTarget,
+                        CuptiPmProfilerHost& pmSamplingHost,
+                        CUptiResult& result,
+                        std::atomic<bool>& stopDecodeThread)
+{
+    while (!stopDecodeThread)
+    {
+        const char *errstr;
+        result = cuptiPmSamplingTarget.DecodePmSamplingData(counterDataImage);
+        if (result != CUPTI_SUCCESS)
+        {
+            cuptiGetResultString(result, &errstr);
+            std::cerr << "DecodePmSamplingData failed with error " << errstr << std::endl;
+            return;
+        }
+
+        CUpti_PmSampling_GetCounterDataInfo_Params counterDataInfo {CUpti_PmSampling_GetCounterDataInfo_Params_STRUCT_SIZE};
+        counterDataInfo.pCounterDataImage = counterDataImage.data();
+        counterDataInfo.counterDataImageSize = counterDataImage.size();
+        result = cuptiPmSamplingGetCounterDataInfo(&counterDataInfo);
+        if (result != CUPTI_SUCCESS)
+        {
+            cuptiGetResultString(result, &errstr);
+            std::cerr << "cuptiPmSamplingGetCounterDataInfo failed with error " << errstr << std::endl;
+            return;
+        }
+
+        for (size_t sampleIndex = 0; sampleIndex < counterDataInfo.numCompletedSamples; ++sampleIndex)
+        {
+            pmSamplingHost.EvaluateCounterData(cuptiPmSamplingTarget.GetPmSamplerObject(), sampleIndex, metricsList, counterDataImage);
+        }
+        result = cuptiPmSamplingTarget.ResetCounterDataImage(counterDataImage);
+        if (result != CUPTI_SUCCESS)
+        {
+            cuptiGetResultString(result, &errstr);
+            std::cerr << "ResetCounterDataImage failed with error " << errstr << std::endl;
+            return;
+        }
+    }
+}
+
+void DecodeCounterDataSync( std::vector<uint8_t>& counterDataImage,
+                        std::vector<const char*> metricsList,
+                        CuptiPmSampling& cuptiPmSamplingTarget,
+                        CuptiPmProfilerHost& pmSamplingHost,
+                        CUptiResult& result
+                        )
+{
+    const char *errstr;
+    result = cuptiPmSamplingTarget.DecodePmSamplingData(counterDataImage);
+    if (result != CUPTI_SUCCESS)
+    {
+        cuptiGetResultString(result, &errstr);
+        std::cerr << "DecodePmSamplingData failed with error " << errstr << std::endl;
+        return;
+    }
+
+    CUpti_PmSampling_GetCounterDataInfo_Params counterDataInfo {CUpti_PmSampling_GetCounterDataInfo_Params_STRUCT_SIZE};
+    counterDataInfo.pCounterDataImage = counterDataImage.data();
+    counterDataInfo.counterDataImageSize = counterDataImage.size();
+    result = cuptiPmSamplingGetCounterDataInfo(&counterDataInfo);
+    if (result != CUPTI_SUCCESS)
+    {
+        cuptiGetResultString(result, &errstr);
+        std::cerr << "cuptiPmSamplingGetCounterDataInfo failed with error " << errstr << std::endl;
+        return;
+    }
+
+    for (size_t sampleIndex = 0; sampleIndex < counterDataInfo.numCompletedSamples; ++sampleIndex)
+    {
+        pmSamplingHost.EvaluateCounterData(cuptiPmSamplingTarget.GetPmSamplerObject(), sampleIndex, metricsList, counterDataImage);
+    }
+    result = cuptiPmSamplingTarget.ResetCounterDataImage(counterDataImage);
+    if (result != CUPTI_SUCCESS)
+    {
+        cuptiGetResultString(result, &errstr);
+        std::cerr << "ResetCounterDataImage failed with error " << errstr << std::endl;
+        return;
+    }
 }
