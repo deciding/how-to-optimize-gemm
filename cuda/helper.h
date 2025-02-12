@@ -43,15 +43,14 @@ struct ParsedArgs
     int deviceIndex = 0;
     std::vector<const char*> metrics =
     {
-        //"gr__cycles_active.avg",                            // Active Cycles
-        //"gr__cycles_elapsed.max",                           // Elapsed Cycles
-        //"gpu__time_duration.sum",                           // Duration
-        //"dram__read_throughput.max.pct_of_peak_sustained_elapsed",
-        //"sm__cycles_active.avg",                             // SM Active Cycles
-        //"sm__inst_executed_realtime.avg.per_cycle_active",  // Inst Executed per Active Cycle
-        //"smsp__inst_executed.sum",
-        //"sm__ctas_launched.sum",
-        "gpu__time_duration.avg"
+        "gpu__time_duration.avg",
+        "sm__warps_active.avg.per_cycle_active", // warp occ 1
+        //"sm__warps_active.avg.peak_sustained", // warp occ 2
+        //"sm__warps_active.avg.pct_of_peak_sustained_active", // warp occ 3
+        "sm__ctas_active.avg.per_cycle_active", // block occ 1, should not be 100%
+        //"sm__ctas_active.avg.peak_sustained", // block occ 2
+        //"sm__ctas_active.avg.pct_of_peak_sustained_active", // block occ 3
+        "l1tex__data_pipe_lsu_wavefronts_mem_shared",
     };
 };
 

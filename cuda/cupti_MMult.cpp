@@ -72,6 +72,12 @@ int main(int argc, char* argv[]) {
       exit(EXIT_FAILURE);
   }
 
+  if (args.queryBaseMetrics || args.queryMetricProperties)
+  {
+      return PmSamplingQueryMetrics(chipName, counterAvailibilityImage, args.queryBaseMetrics, args.queryMetricProperties, args.metrics);
+  }
+
+
   //CuptiPmSampling::GetChipName(args.deviceIndex, chipName);
 
   if (args.profiler == "pm"){
@@ -121,11 +127,6 @@ int main(int argc, char* argv[]) {
         counterDataImage
     ));
 
-  }
-
-  if (args.queryBaseMetrics || args.queryMetricProperties)
-  {
-      return PmSamplingQueryMetrics(chipName, counterAvailibilityImage, args.queryBaseMetrics, args.queryMetricProperties, args.metrics);
   }
 
 

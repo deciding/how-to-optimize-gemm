@@ -71,18 +71,18 @@ int PmSamplingQueryMetrics(std::string chipName, std::vector<uint8_t>& counterAv
         for (const auto& metricName : metrics)
         {
             std::vector<std::string> subMetrics;
-            CUPTI_API_CALL(pmSamplingHost.GetSubMetrics(metricName, subMetrics));
-            printf("Sub Metrics for %s:\n", metricName);
+            CUpti_MetricType metricType;
+            CUPTI_API_CALL(pmSamplingHost.GetSubMetrics(metricName, subMetrics, metricType));
+            const char* metricTypeName = metricType == CUPTI_METRIC_TYPE_COUNTER ? "Counter" : (metricType == CUPTI_METRIC_TYPE_RATIO) ? "Ratio" : "Throughput";
+            printf("Sub Metrics for type %s metric %s:\n", metricTypeName, metricName);
             for (const auto& metric : subMetrics) {
                 printf("  %s\n", metric.c_str());
             }
 
             std::string metricDescription;
-            CUpti_MetricType metricType;
             CUPTI_API_CALL(pmSamplingHost.GetMetricProperties(metricName, metricType,metricDescription));
 
             printf("Metric Description: %s\n", metricDescription.c_str());
-            printf("Metric Type: %s\n", metricType == CUPTI_METRIC_TYPE_COUNTER ? "Counter" : (metricType == CUPTI_METRIC_TYPE_RATIO) ? "Ratio" : "Throughput");
             printf("\n");
         }
         return 0;

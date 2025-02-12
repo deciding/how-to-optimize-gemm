@@ -167,22 +167,23 @@ public:
         return CUPTI_SUCCESS;
     }
 
-    CUptiResult GetSubMetrics(const std::string& metricName, std::vector<std::string>& subMetricsList)
+    CUptiResult GetSubMetrics(const std::string& metricName, std::vector<std::string>& subMetricsList, CUpti_MetricType& metricType)
     {
-        CUpti_MetricType metricType;
-        std::string metricDescription;
-        CUPTI_API_CALL(GetMetricProperties(metricName, metricType, metricDescription));
+        //CUpti_MetricType metricType;
+        //std::string metricDescription;
+        //CUPTI_API_CALL(GetMetricProperties(metricName, metricType, metricDescription));
 
         CUpti_Profiler_Host_GetSubMetrics_Params getSubMetricsParams {CUpti_Profiler_Host_GetSubMetrics_Params_STRUCT_SIZE};
         getSubMetricsParams.pHostObject = m_pHostObject;
         getSubMetricsParams.pMetricName = metricName.c_str();
-        getSubMetricsParams.metricType = metricType;
+        //getSubMetricsParams.metricType = metricType;
         CUPTI_API_CALL(cuptiProfilerHostGetSubMetrics(&getSubMetricsParams));
 
         for (size_t subMetricIndex = 0; subMetricIndex < getSubMetricsParams.numOfSubmetrics; ++subMetricIndex)
         {
             subMetricsList.push_back(getSubMetricsParams.ppSubMetrics[subMetricIndex]);
         }
+        metricType = getSubMetricsParams.metricType;
         return CUPTI_SUCCESS;
     }
 
