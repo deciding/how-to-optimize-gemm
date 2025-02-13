@@ -51,6 +51,27 @@ struct ParsedArgs
         //"sm__ctas_active.avg.peak_sustained", // block occ 2
         //"sm__ctas_active.avg.pct_of_peak_sustained_active", // block occ 3
         "l1tex__data_pipe_lsu_wavefronts_mem_shared",
+
+
+
+        // example 1:
+        //"gpu__time_duration.sum",                   // total time
+        //"dram__bytes_read.sum",                     // DRAM reads
+        //"dram__bytes_write.sum",                    // DRAM writes
+        //"lts__t_sectors_srcunit_tex_op_read.sum",   // L2 reads (sectors -- 32B)
+        //"lts__t_sectors_srcunit_tex_op_write.sum",  // L2 writes (sectors -- 32B)
+        //"sm__pipe_tensor_op_hmma_cycles_active.avg.pct_of_peak_sustained_active", // % of peak tensor core utilization
+        //"smsp__inst_executed.sum",                  // instructions
+
+        // example 2: https://gist.github.com/getianao/1686c4d0dac02a0b91a2885e18d9c9a3
+        //"smsp__thread_inst_executed_per_inst_executed", // the ratio of active threads that are not predicated off over the maximum number of threads per warp for each executed instruction
+        //"l1tex__t_sector_hit_rate", // l1 cache hit rate, # of sector hits per sector
+        //"lts__t_sector_hit_rate", // l2 cache hit rate
+        //"sm__warps_active.avg.pct_of_peak_sustained_active", // achieved occupancy
+        //"sm__maximum_warps_per_active_cycle_pct", // max occupancy
+        //"smsp__maximum_warps_avg_per_active_cycle", // theoratical warp per scheduler
+        //"smsp__warps_active", // active warps per scheduler
+        //"smsp__warps_eligible", // eligible warps per scheduler
     };
 };
 
